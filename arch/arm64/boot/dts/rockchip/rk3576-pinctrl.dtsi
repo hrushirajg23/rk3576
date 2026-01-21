@@ -1492,6 +1492,15 @@
 		};
 	};
 
+	headphone {
+		hp_det: hp-det {
+			rockchip,pins =
+				<4 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	
+
 	fspi1 {
 		/omit-if-no-ref/
 		fspi1m0_pins: fspi1m0-pins {

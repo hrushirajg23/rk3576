@@ -110,7 +110,7 @@
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		enable-active-high;
-		gpios = <&gpio2 RK_PD3 GPIO_ACTIVE_HIGH>;
+		gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
 		startup-delay-us = <5000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pcie_pwr_en>;
@@ -128,6 +128,7 @@
 		startup-delay-us = <5000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&usb_wifi_power_en>;
+		status = "disabled";
 	};
 
 	wifi_chip_en: wifi-chip-en {
@@ -142,6 +143,7 @@
 		startup-delay-us = <5000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&wifi_chip_en_pin>;
+		status = "disabled";
 	};
 
 
@@ -157,17 +159,22 @@
 	es8388_sound: es8388-sound {
 		status = "okay";
 		compatible = "rockchip,multicodecs-card";
+
 		rockchip,card-name = "rockchip-es8388";
+		hp-con-gpio = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
+		hp-det-gpio = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
+		spk-con-gpio = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
+
 		io-channels = <&saradc 3>;
 		io-channel-names = "adc-detect";
 		keyup-threshold-microvolt = <1800000>;
 		poll-interval = <100>;
-		spk-con-gpio = <&gpio2 RK_PC6 GPIO_ACTIVE_HIGH>;
+
 		rockchip,pre-power-on-delay-ms = <30>;
 		rockchip,post-power-down-delay-ms = <40>;
 		rockchip,format = "i2s";
 		rockchip,mclk-fs = <256>;
-		rockchip,cpu = <&sai1>;
+		rockchip,cpu = <&sai2>;
 		rockchip,codec = <&es8388>;
 		rockchip,audio-routing =
 			"Headphone", "LOUT1",
@@ -182,6 +189,10 @@
 			"LINPUT2", "Main Mic",
 			"RINPUT1", "Headset Mic",
 			"RINPUT2", "Headset Mic";
+
+		pinctrl-0 = <&hp_det>;
+
+
 	};
 
 	gpio-leds {
@@ -387,7 +398,7 @@
 &hdmi {
 	status = "okay";
 	cec-enable;
-	enable-gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_HIGH>;
+	enable-gpios = <&gpio0 RK_PD0 GPIO_ACTIVE_HIGH>;
 };
 
 &hdmi_in_vp0 {
@@ -422,45 +433,41 @@
 };
 
 &gmac0 {
-	/* Use rgmii-rxid mode to disable rx delay inside Soc */
-	phy-mode = "rgmii-rxid";
-	clock_in_out = "output";
+    phy-mode = "rgmii-id";
+    clock_in_out = "output";
 
-	snps,reset-gpio = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
-	snps,reset-active-low;
-	/* Reset time is 20ms, 100ms for rtl8211f */
-	snps,reset-delays-us = <0 20000 100000>;
+    snps,reset-gpio = <&gpio4 RK_PB5 GPIO_ACTIVE_LOW>;
+    snps,reset-active-low;
+    snps,reset-delays-us = <0 20000 100000>;
 
-	pinctrl-names = "default";
-	pinctrl-0 = <&eth0m0_miim
-		     &eth0m0_tx_bus2
-		     &eth0m0_rx_bus2
-		     &eth0m0_rgmii_clk
-		     &eth0m0_rgmii_bus
-		     &ethm0_clk0_25m_out>;
+    pinctrl-names = "default";
+    pinctrl-0 = <&eth0m0_miim
+                 &eth0m0_tx_bus2
+                 &eth0m0_rx_bus2
+                 &eth0m0_rgmii_clk
+                 &eth0m0_rgmii_bus>;
 
-	tx_delay = <0x20>;
-	/* rx_delay = <0x3f>; */
+    tx_delay = <0x1d>;
 
-	phy-handle = <&rgmii_phy0>;
-	status = "okay";
+    phy-handle = <&rgmii_phy0>;
+    status = "okay";
 };
 
 &mdio0 {
-	rgmii_phy0: phy@1 {
-		compatible = "ethernet-phy-ieee802.3-c22";
-		reg = <0x1>;
-		clocks = <&cru REFCLKO25M_GMAC0_OUT>;
-	};
+    rgmii_phy0: phy@1 {
+        compatible = "ethernet-phy-ieee802.3-c22";
+        reg = <0x1>;
+	//clocks = <&cru REFCLKO25M_GMAC0_OUT>;
+    };
 };
 
-&sai1 {
+&sai2 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&sai1m0_lrck
-		     &sai1m0_sclk
-		     &sai1m0_sdi0
-		     &sai1m0_sdo0>;
+	pinctrl-0 = <&sai2m0_lrck
+		     &sai2m0_sclk
+		     &sai2m0_sdi
+		     &sai2m0_sdo>;
 };
 
 &sai6 {
@@ -517,7 +524,7 @@
 	};
 };
 
-&i2c3 {
+&i2c0 {
 	status = "okay";
 
 	es8388: es8388@10 {
@@ -613,7 +620,7 @@
 
 	pcie {
 		pcie_pwr_en: pcie-pwr-en {
-			rockchip,pins = <2 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+			rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
