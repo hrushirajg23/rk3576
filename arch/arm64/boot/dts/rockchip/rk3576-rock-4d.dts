@@ -94,16 +94,28 @@
 		vin-supply = <&vcc_sys>;
 	};
 
-	vcc3v3_pcie: vcc3v3-pcie {
+	vcc3v3_pcie0: vcc3v3-pcie- {
 		compatible = "regulator-fixed";
-		regulator-name = "vcc3v3_pcie";
+		regulator-name = "vcc3v3_pcie0";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		enable-active-high;
 		gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
 		startup-delay-us = <5000>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&pcie_pwr_en>;
+		//pinctrl-0 = <&pcie_pwr_en>;
+	};
+
+	vcc3v3_pcie1: vcc3v3-pcie1 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_pcie1";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		enable-active-high;
+		gpios = <&gpio4 RK_PB0 GPIO_ACTIVE_HIGH>;
+		startup-delay-us = <5000>;
+		pinctrl-names = "default";
+		//pinctrl-0 = <&pcie_pwr_en>;
 	};
 
 	//vcc3v3_wifi: vcc3v3-wifi {
@@ -587,9 +599,17 @@
 &pcie0 {
 	reset-gpios = <&gpio2 RK_PB4 GPIO_ACTIVE_HIGH>;
 	rockchip,skip-scan-in-resume;
-	vpcie3v3-supply = <&vcc3v3_pcie>;
+	vpcie3v3-supply = <&vcc3v3_pcie0>;
 	status = "okay";
 };
+
+&pcie1 {
+	reset-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;
+	rockchip,skip-scan-in-resume;
+	vpcie3v3-supply = <&vcc3v3_pcie1>;
+	status = "okay";
+};
+
 
 &i2c6 {
 	status = "okay";
@@ -821,9 +841,19 @@
 		};
 	};
 
-	pcie {
-		pcie_pwr_en: pcie-pwr-en {
-			rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+	pcie0 {
+//		pcie0_pwr_en: pcie0-pwr-en {
+//			rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+//		};
+		pcie0_rst: pcie0-rst {
+			rockchip,pins =
+				<2 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	pcie1 {
+		pcie1_rst: pcie1-rst {
+			rockchip,pins =
+				<2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 	wireless-bluetooth {
