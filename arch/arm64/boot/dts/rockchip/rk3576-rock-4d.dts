@@ -21,8 +21,29 @@
 #include "rk3576-rk806.dtsi"
 
 / {
-	model = "ROCK 4D";
-	compatible = "radxa,rock-4d", "rockchip,rk3576";
+	model = "AXON LITE";
+	compatible = "vicharak,rk3576-axon-lite", "rockchip,rk3576";
+
+	clk_cam_25m: external-camera-clock-25m {
+		status = "okay";
+		compatible = "fixed-clock";
+		clock-frequency = <25000000>;
+		clock-output-names = "clk_cam_25m";
+		#clock-cells = <0>;
+	};
+
+    cam3_ov5647_pwdn_gpio: cam3-pwdn-gpio {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "cam3_pwdn_gpio";
+		regulator-always-on;
+		regulator-boot-on;
+		enable-active-high;
+		gpio = <&gpio2 RK_PD1 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam3_pwdn_gpio>;
+	};
+
 
 	fan0: pwm-fan {
 		compatible = "pwm-fan";
@@ -38,6 +59,32 @@
 		regulator-boot-on;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
+	};
+
+    vcc_2v5_ufs: vcc-2v5-ufs {
+        compatible = "regulator-fixed";
+        regulator-name = "vcc_2v5_ufs";
+        regulator-min-microvolt = <2500000>;
+        regulator-max-microvolt = <2500000>;
+        regulator-boot-on;
+        regulator-always-on;
+        vin-supply = <&vcc_sys>;
+    };
+
+	vcc1v2_ufs_vccq: regulator-vcc1v2-ufs-vccq {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		regulator-name = "vcc1v2_ufs_vccq";
+		vin-supply = <&vcc_sys>;
+	};
+
+	vcc1v8_ufs_vccq2: regulator-vcc1v8-ufs-vccq2 {
+		compatible = "regulator-fixed";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-name = "vcc1v8_ufs_vccq2";
+		vin-supply = <&vcc_1v8_s3>;
 	};
 
 	vcc_2v0_pldo_s3: vcc-2v0-pldo-s3 {
@@ -94,6 +141,15 @@
 		vin-supply = <&vcc_sys>;
 	};
 
+    vcc5v0_device: vcc5v0-device {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_device";
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+	};
+
 	vcc3v3_pcie0: vcc3v3-pcie0 {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc3v3_pcie0";
@@ -104,7 +160,9 @@
 		startup-delay-us = <5000>;
 		regulator-boot-on;
 		regulator-always-on;
-	};
+		vin-supply = <&vcc5v0_device>;
+
+    };
 
 	vcc3v3_pcie1: vcc3v3-pcie1 {
 		compatible = "regulator-fixed";
@@ -116,7 +174,21 @@
 		startup-delay-us = <5000>;
 		regulator-boot-on;
 		regulator-always-on;
+		vin-supply = <&vcc5v0_device>;
 	};
+
+    csi3v3: csi3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "csi3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		enable-active-high;
+		gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
+		regulator-boot-on;
+		regulator-always-on;
+		vin-supply = <&vcc5v0_device>;
+
+    };
 
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
@@ -128,8 +200,6 @@
 		status = "okay";
 	};
 		
-
-
 	hdmi_sound: hdmi-sound {
 		compatible = "rockchip,hdmi";
 		rockchip,mclk-fs = <128>;
@@ -211,15 +281,15 @@
 	gpio-leds {
 		compatible = "gpio-leds";
 
-		power-led {
-			gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "default-on";
-		};
+		/* power-led { */
+		/* 	gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>; */
+		/* 	linux,default-trigger = "default-on"; */
+		/* }; */
 
-		user-led {
-			gpios = <&gpio3 RK_PC4 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "heartbeat";
-		};
+		/* user-led { */
+		/* 	gpios = <&gpio3 RK_PC4 GPIO_ACTIVE_HIGH>; */
+		/* 	linux,default-trigger = "heartbeat"; */
+		/* }; */
 	};
 
 
@@ -432,6 +502,7 @@
 	status = "okay";
 };
 
+
 &vdpp {
 	status = "okay";
 };
@@ -540,9 +611,33 @@
 	status = "okay";
 };
 
+/* &ufs { */
+
+/*     /1* Extend dtsi's pinctrl-0 to add ufs_rst *1/ */
+   
+/*     reset-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_LOW>; */
+/*     /1* VCC_2V5_3V3_UFS_S0 - SY8089 discrete buck, main storage power *1/ */
+/*     vcc-supply   = <&vcc_2v5_ufs>; */
+
+/*     /1* VCC_1V2_UFS_VCCQ_S0 - PLDO_REG3 from RK806 *1/ */
+/*     vccq-supply  = <&vdda_1v2_s0>; */
+
+/*     /1* VCC_1V8_UFS - DCDC_REG8 from RK806 *1/ */
+/*     vccq2-supply = <&vcc_1v8_s3>; */
+/*     vdd-hba-supply = <&vdd_logic_s0>; */
+/* }; */
+
 &ufs {
-	status = "okay";
-	reset-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_HIGH>;
+    status = "okay";
+
+    //pinctrl-names = "default";
+    //pinctrl-0 = <&ufs_refclk &ufs_rst>;   /* ← add &ufs_rst here */
+    reset-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_LOW>;
+
+	//vcc-supply = <&vcc_3v3_s3>;
+	//vccq-supply = <&vcc1v2_ufs_vccq>;
+	//vccq2-supply = <&vcc1v8_ufs_vccq2>;
+	//vdd-hba-supply = <&vdda_1v2_s0>;
 };
 
 &sdmmc {
@@ -567,8 +662,10 @@
 };
 
 &pcie0 {
-	reset-gpios = <&gpio2 RK_PB4 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio2 RK_PC4 GPIO_ACTIVE_HIGH>;
 	rockchip,skip-scan-in-resume;
+    pinctrl-names = "default";
+	pinctrl-0 = <&pcie0_rst &pcie0_clkreq &pcie0_wake>;
 	vpcie3v3-supply = <&vcc3v3_pcie0>;
 	status = "okay";
 };
@@ -576,10 +673,18 @@
 &pcie1 {
 	reset-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;
 	rockchip,skip-scan-in-resume;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie1_rst &pcie1_clkreq &pcie1_wake>;
 	vpcie3v3-supply = <&vcc3v3_pcie1>;
 	status = "okay";
 };
 
+&i2c1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1m1_xfer>;
+
+};
 
 &i2c6 {
 	status = "okay";
@@ -689,6 +794,188 @@
 	};
 };
 
+/* ── 2. I2C bus with sensor ───────────────────────────────────── */
+&i2c2 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c2m0_xfer>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	ov5647: ov5647@36 {
+		status = "okay";
+		compatible = "ovti,ov5647";
+		reg = <0x36>;
+		clocks = <&clk_cam_25m>;
+		clock-names = "ext_cam_clk";
+		/* pwdn-gpios = <&gpio2 RK_PD1 GPIO_ACTIVE_HIGH>; */
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "ov5647-custom";
+		rockchip,camera-module-lens-name = "default";
+
+		port {
+			ov5647_out0: endpoint {
+				remote-endpoint = <&dphy1_in_ucam0>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+};                              /* ← i2c2 closes HERE, nothing else inside */
+
+/* ── 3. PHY hardware blocks ───────────────────────────────────── */
+&csi2_dphy0_hw {
+	status = "okay";
+};
+
+&csi2_dphy1_hw {
+	status = "okay";
+};
+
+/* ── 4. DPHY1 pipeline ────────────────────────────────────────── */
+&csi2_dphy1 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			dphy1_in_ucam0: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&ov5647_out0>;
+				data-lanes = <1 2>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csi_dphy1_out: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&mipi2_csi2_input>;
+			};
+		};
+	};
+};
+
+/* ── 5. MIPI CSI2 host ────────────────────────────────────────── */
+&mipi2_csi2 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi2_csi2_input: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&csi_dphy1_out>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi2_csi2_output: endpoint@0 {
+				reg = <0>;
+				remote-endpoint = <&cif_mipi2_in0>;
+			};
+		};
+	};
+};
+
+/* ── 6. RKCIF ─────────────────────────────────────────────────── */
+&rkcif {
+	status = "okay";
+};
+
+&rkcif_mmu {
+	status = "okay";
+};
+
+&rkcif_mipi_lvds2 {
+	status = "okay";
+
+	port {
+		cif_mipi2_in0: endpoint {
+			remote-endpoint = <&mipi2_csi2_output>;
+		};
+	};
+};
+
+&rkcif_mipi_lvds2_sditf {
+	status = "okay";
+
+	port {
+		mipi_lvds2_sditf: endpoint {
+			remote-endpoint = <&isp_vir0>;
+		};
+	};
+};
+
+/* ── 7. RKISP ─────────────────────────────────────────────────── */
+&rkisp_mmu {
+	status = "okay";
+};
+
+&rkisp {
+	status = "okay";
+};
+
+&rkisp_vir0 {
+	status = "okay";
+
+	port {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		isp_vir0: endpoint@0 {
+			reg = <0>;
+			remote-endpoint = <&mipi_lvds2_sditf>;
+		};
+	};
+};
+
+&rkisp_vir0_sditf {
+	status = "okay";
+};
+
+/* ── 8. RKVPSS ────────────────────────────────────────────────── */
+&rkvpss {
+	status = "okay";
+};
+
+&rkvpss_mmu {
+	status = "okay";
+};
+
+&rkvpss_vir0 {
+	status = "okay";
+};
+
+/* ── 9. Pinctrl ───────────────────────────────────────────────── */
+/* &i2c2m0_xfer { */
+/* 	rockchip,pins = */
+/* 		/1* i2c2_scl_m0 *1/ */
+/* 		<0 RK_PB7 9 &pcfg_pull_up_drv_level_3>, */
+/* 		/1* i2c2_sda_m0 *1/ */
+/* 		<0 RK_PC0 9 &pcfg_pull_up_drv_level_3>; */
+/* }; */
+
 
 // USB 2.0 PHY 0
 &u2phy0 {
@@ -784,14 +1071,13 @@
 	status = "okay";
 };
 
-
-//&pwm2_8ch_5 {
-//	pinctrl-0 = <&pwm2m1_ch5>;
-//	status = "okay";
-//};
-
 &pinctrl {
-	usb {
+    /* ufs { */
+    /*     ufs_rst: ufs-rst { */
+    /*         rockchip,pins = <4 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>; */
+    /*     }; */
+    /* }; */
+   	usb {
 		usb_host_pwren: usb-host-pwren {
 			rockchip,pins = <2 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
@@ -812,18 +1098,37 @@
 	};
 
 	pcie0 {
-//		pcie0_pwr_en: pcie0-pwr-en {
-//			rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
-//		};
-		pcie0_rst: pcie0-rst {
+        pcie0_rst: pcie0-rst {
 			rockchip,pins =
-				<2 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+				<2 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
+
+		pcie0_clkreq: pcie0-clkreq {
+			rockchip,pins =
+				<2 RK_PB2 4 &pcfg_pull_none>;
+		};
+
+		pcie0_wake: pcie0-wake {
+			rockchip,pins =
+				<2 RK_PC3 4 &pcfg_pull_none>;
+		};
+
 	};
+
 	pcie1 {
-		pcie1_rst: pcie1-rst {
+        pcie1_rst: pcie1-rst {
 			rockchip,pins =
 				<2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		pcie1_clkreq: pcie1-clkreq {
+			rockchip,pins =
+				<2 RK_PB3 4 &pcfg_pull_none>;
+		};
+
+		pcie1_wake: pcie1-wake {
+			rockchip,pins =
+				<2 RK_PB0 4 &pcfg_pull_none>;
 		};
 	};
 	wireless-bluetooth {
@@ -871,6 +1176,11 @@
 		hp_det: hp-det {
 			rockchip,pins =
 				<4 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+    camera {
+		cam3_pwdn_gpio: cam3-pwdn-gpio {
+			rockchip,pins = <2 RK_PD1 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
