@@ -44,6 +44,25 @@
 		pinctrl-0 = <&cam3_pwdn_gpio>;
 	};
 
+	cam2_imx415_pwdn_gpio: cam2-pwdn-gpio {
+		status = "okay";
+		compatible = "regulator-fixed";
+		regulator-name = "cam2_pwdn_gpio";
+		regulator-always-on;
+		regulator-boot-on;
+		enable-active-high;
+		gpio = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam2_pwdn_gpio>;
+	};
+
+	clk_cam2_27m: external-cam2-clock-27m {
+		status = "okay";
+		compatible = "fixed-clock";
+		clock-frequency = <27000000>;
+		clock-output-names = "clk_cam2_27m";
+		#clock-cells = <0>;
+	};
 
 	fan0: pwm-fan {
 		compatible = "pwm-fan";
@@ -611,33 +630,9 @@
 	status = "okay";
 };
 
-/* &ufs { */
-
-/*     /1* Extend dtsi's pinctrl-0 to add ufs_rst *1/ */
-   
-/*     reset-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_LOW>; */
-/*     /1* VCC_2V5_3V3_UFS_S0 - SY8089 discrete buck, main storage power *1/ */
-/*     vcc-supply   = <&vcc_2v5_ufs>; */
-
-/*     /1* VCC_1V2_UFS_VCCQ_S0 - PLDO_REG3 from RK806 *1/ */
-/*     vccq-supply  = <&vdda_1v2_s0>; */
-
-/*     /1* VCC_1V8_UFS - DCDC_REG8 from RK806 *1/ */
-/*     vccq2-supply = <&vcc_1v8_s3>; */
-/*     vdd-hba-supply = <&vdd_logic_s0>; */
-/* }; */
-
 &ufs {
     status = "okay";
-
-    //pinctrl-names = "default";
-    //pinctrl-0 = <&ufs_refclk &ufs_rst>;   /* ← add &ufs_rst here */
     reset-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_LOW>;
-
-	//vcc-supply = <&vcc_3v3_s3>;
-	//vccq-supply = <&vcc1v2_ufs_vccq>;
-	//vccq2-supply = <&vcc1v8_ufs_vccq2>;
-	//vdd-hba-supply = <&vdda_1v2_s0>;
 };
 
 &sdmmc {
@@ -713,7 +708,7 @@
 		pinctrl-0 = <&usbc0_int>;
 		vbus-supply = <&vbus5v0_typec>;
 		status = "okay";
-
+        sel-gpios = <&gpio4 RK_PA1 GPIO_ACTIVE_HIGH>;
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -794,35 +789,64 @@
 	};
 };
 
-/* ── 2. I2C bus with sensor ───────────────────────────────────── */
-&i2c2 {
-	status = "okay";
+&i2c3 {
+    status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&i2c2m0_xfer>;
+	pinctrl-0 = <&i2c3m1_xfer>;
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	ov5647: ov5647@36 {
+	cam2_imx415_37: cam2-imx415@37 {
 		status = "okay";
-		compatible = "ovti,ov5647";
-		reg = <0x36>;
-		clocks = <&clk_cam_25m>;
-		clock-names = "ext_cam_clk";
-		/* pwdn-gpios = <&gpio2 RK_PD1 GPIO_ACTIVE_HIGH>; */
+		compatible = "sony,imx415";
+		reg = <0x37>;
 
-		rockchip,camera-module-index = <0>;
-		rockchip,camera-module-facing = "back";
-		rockchip,camera-module-name = "ov5647-custom";
-		rockchip,camera-module-lens-name = "default";
+		clocks = <&clk_cam2_27m>;
+		clock-names = "xvclk";
+
+		rockchip,camera-module-index = <2>;
+		rockchip,camera-module-facing = "front";
+		rockchip,camera-module-name = "RADXA-CAMERA-4K";
+		rockchip,camera-module-lens-name = "DEFAULT";
 
 		port {
-			ov5647_out0: endpoint {
+			cam2_imx415_out0: endpoint {
 				remote-endpoint = <&dphy1_in_ucam0>;
 				data-lanes = <1 2>;
 			};
 		};
 	};
-};                              /* ← i2c2 closes HERE, nothing else inside */
+
+};
+
+/* ── 2. I2C bus with sensor ───────────────────────────────────── */
+/* &i2c2 { */
+/* 	status = "okay"; */
+/* 	pinctrl-names = "default"; */
+/* 	pinctrl-0 = <&i2c2m0_xfer>; */
+/* 	#address-cells = <1>; */
+/* 	#size-cells = <0>; */
+
+/* 	ov5647: ov5647@36 { */
+/* 		status = "okay"; */
+/* 		compatible = "ovti,ov5647"; */
+/* 		reg = <0x36>; */
+/* 		clocks = <&clk_cam_25m>; */
+/* 		clock-names = "ext_cam_clk"; */
+
+/* 		rockchip,camera-module-index = <0>; */
+/* 		rockchip,camera-module-facing = "back"; */
+/* 		rockchip,camera-module-name = "ov5647-custom"; */
+/* 		rockchip,camera-module-lens-name = "default"; */
+
+/* 		port { */
+/* 			ov5647_out0: endpoint { */
+/* 				remote-endpoint = <&dphy1_in_ucam0>; */
+/* 				data-lanes = <0 1>; */
+/* 			}; */
+/* 		}; */
+/* 	}; */
+/* }; */     
 
 /* ── 3. PHY hardware blocks ───────────────────────────────────── */
 &csi2_dphy0_hw {
@@ -834,7 +858,7 @@
 };
 
 /* ── 4. DPHY1 pipeline ────────────────────────────────────────── */
-&csi2_dphy1 {
+&csi2_dcphy0 {
 	status = "okay";
 
 	ports {
@@ -848,8 +872,8 @@
 
 			dphy1_in_ucam0: endpoint@1 {
 				reg = <1>;
-				remote-endpoint = <&ov5647_out0>;
-				data-lanes = <1 2>;
+				remote-endpoint = <&cam2_imx415_out0>;
+				data-lanes = <0 1>;
 			};
 		};
 
@@ -858,16 +882,16 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			csi_dphy1_out: endpoint@0 {
+			csi_dcphy0_out: endpoint@0 {
 				reg = <0>;
-				remote-endpoint = <&mipi2_csi2_input>;
+				remote-endpoint = <&mipi0_csi2_input>;
 			};
 		};
 	};
 };
 
 /* ── 5. MIPI CSI2 host ────────────────────────────────────────── */
-&mipi2_csi2 {
+&mipi0_csi2 {
 	status = "okay";
 
 	ports {
@@ -879,9 +903,9 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			mipi2_csi2_input: endpoint@1 {
+			mipi0_csi2_input: endpoint@1 {
 				reg = <1>;
-				remote-endpoint = <&csi_dphy1_out>;
+				remote-endpoint = <&csi_dcphy0_out>;
 			};
 		};
 
@@ -890,9 +914,9 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			mipi2_csi2_output: endpoint@0 {
+			mipi0_csi2_output: endpoint@0 {
 				reg = <0>;
-				remote-endpoint = <&cif_mipi2_in0>;
+				remote-endpoint = <&cif_mipi0_in0>;
 			};
 		};
 	};
@@ -907,21 +931,21 @@
 	status = "okay";
 };
 
-&rkcif_mipi_lvds2 {
+&rkcif_mipi_lvds {
 	status = "okay";
 
 	port {
-		cif_mipi2_in0: endpoint {
-			remote-endpoint = <&mipi2_csi2_output>;
+		cif_mipi0_in0: endpoint {
+			remote-endpoint = <&mipi0_csi2_output>;
 		};
 	};
 };
 
-&rkcif_mipi_lvds2_sditf {
+&rkcif_mipi_lvds_sditf {
 	status = "okay";
 
 	port {
-		mipi_lvds2_sditf: endpoint {
+		mipi_lvds_sditf: endpoint {
 			remote-endpoint = <&isp_vir0>;
 		};
 	};
@@ -945,7 +969,7 @@
 
 		isp_vir0: endpoint@0 {
 			reg = <0>;
-			remote-endpoint = <&mipi_lvds2_sditf>;
+			remote-endpoint = <&mipi_lvds_sditf>;
 		};
 	};
 };
@@ -966,16 +990,6 @@
 &rkvpss_vir0 {
 	status = "okay";
 };
-
-/* ── 9. Pinctrl ───────────────────────────────────────────────── */
-/* &i2c2m0_xfer { */
-/* 	rockchip,pins = */
-/* 		/1* i2c2_scl_m0 *1/ */
-/* 		<0 RK_PB7 9 &pcfg_pull_up_drv_level_3>, */
-/* 		/1* i2c2_sda_m0 *1/ */
-/* 		<0 RK_PC0 9 &pcfg_pull_up_drv_level_3>; */
-/* }; */
-
 
 // USB 2.0 PHY 0
 &u2phy0 {
@@ -1072,11 +1086,6 @@
 };
 
 &pinctrl {
-    /* ufs { */
-    /*     ufs_rst: ufs-rst { */
-    /*         rockchip,pins = <4 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>; */
-    /*     }; */
-    /* }; */
    	usb {
 		usb_host_pwren: usb-host-pwren {
 			rockchip,pins = <2 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -1153,8 +1162,6 @@
 		};
 	};
 
-
-
 	wireless-wlan {
 		sdio_reset_wifi: sdio-reset-wifi {
 			rockchip,pins =
@@ -1181,6 +1188,9 @@
     camera {
 		cam3_pwdn_gpio: cam3-pwdn-gpio {
 			rockchip,pins = <2 RK_PD1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+		cam2_pwdn_gpio: cam2-pwdn-gpio {
+			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
 	};
 
