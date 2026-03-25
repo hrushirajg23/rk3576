@@ -85,6 +85,7 @@ struct fusb302_chip {
 	bool irq_while_suspended;
 	struct gpio_desc *gpio_int_n;
 	struct gpio_desc *gpio_sel;
+	struct gpio_desc *gpio_role;
 	int gpio_int_n_irq;
 	struct extcon_dev *extcon;
 
@@ -941,6 +942,14 @@ static int tcpm_set_roles(struct tcpc_dev *dev, bool attached,
 	}
 	fusb302_log(chip, "pd header := %s, %s", typec_role_name[pwr],
 		    typec_data_role_name[data]);
+
+	/* Role GPIO backup: catches PD-level role swaps */
+	if (chip->gpio_role && !IS_ERR(chip->gpio_role)) {
+		int role_val = (data == TYPEC_DEVICE) ? 1 : 0;
+		gpiod_set_value(chip->gpio_role, role_val);
+		fusb302_log(chip, "manual: set_roles: role gpio=%d (%s)",
+			    role_val, typec_data_role_name[data]);
+	}
 done:
 	mutex_unlock(&chip->lock);
 
@@ -1272,6 +1281,12 @@ static int fusb302_handle_togdone_snk(struct fusb302_chip *chip,
 		    typec_cc_status_name[cc1],
 		    typec_cc_status_name[cc2]);
 
+	/* Role GPIO: sink/device detected → HIGH */
+	if (chip->gpio_role && !IS_ERR(chip->gpio_role)) {
+		gpiod_set_value(chip->gpio_role, 1);
+		fusb302_log(chip, "manual: togdone_snk: role gpio=1 (device mode)");
+	}
+
 	return ret;
 }
 
@@ -1415,6 +1430,12 @@ static int fusb302_handle_togdone_src(struct fusb302_chip *chip,
 	fusb302_log(chip, "detected cc1=%s, cc2=%s",
 		    typec_cc_status_name[cc1],
 		    typec_cc_status_name[cc2]);
+
+	/* Role GPIO: source/host detected → LOW */
+	if (chip->gpio_role && !IS_ERR(chip->gpio_role)) {
+		gpiod_set_value(chip->gpio_role, 0);
+		fusb302_log(chip, "manual: togdone_src: role gpio=0 (host mode)");
+	}
 
 	return ret;
 }
@@ -1605,6 +1626,12 @@ static void fusb302_irq_work(struct kthread_work *work)
 			chip->cc1 = TYPEC_CC_OPEN;
 			chip->cc2 = TYPEC_CC_OPEN;
 			tcpm_cc_change(chip->tcpm_port);
+			/* Role GPIO: detached → LOW */
+			if (chip->gpio_role && !IS_ERR(chip->gpio_role)) {
+				gpiod_set_value(chip->gpio_role, 0);
+				fusb302_log(chip,
+					    "manual: detach: role gpio=0");
+			}
 		}
 	}
 
@@ -1776,6 +1803,13 @@ static int fusb302_probe(struct i2c_client *client,
 	chip->gpio_sel = devm_gpiod_get_optional(dev, "sel", GPIOD_OUT_HIGH);
 	if (IS_ERR(chip->gpio_sel)) {
 		dev_err(dev, "failed to request gpio_sel\n");
+	}
+
+	chip->gpio_role = devm_gpiod_get_optional(dev, "role", GPIOD_OUT_LOW);
+	if (IS_ERR(chip->gpio_role)) {
+		dev_err(dev, "failed to request gpio_role\n");
+	} else if (chip->gpio_role) {
+		dev_info(dev, "manual: role-gpios acquired, default LOW\n");
 	}
 
 	if (client->irq) {
