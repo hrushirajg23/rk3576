@@ -39,7 +39,7 @@
 		regulator-always-on;
 		regulator-boot-on;
 		enable-active-high;
-		gpio = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
+		/* gpio = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>; */
 		pinctrl-names = "default";
 		pinctrl-0 = <&cam3_pwdn_gpio>;
 	};
@@ -51,7 +51,7 @@
 		regulator-always-on;
 		regulator-boot-on;
 		enable-active-high;
-		gpio = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
+		gpio = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&cam2_pwdn_gpio>;
 	};
@@ -63,7 +63,7 @@
 		clock-output-names = "clk_cam2_27m";
 		#clock-cells = <0>;
 	};
-
+	
 	fan0: pwm-fan {
 		compatible = "pwm-fan";
 		#cooling-cells = <2>;
@@ -801,15 +801,8 @@
 		status = "okay";
 		compatible = "sony,imx415";
 		reg = <0x37>;
-
 		clocks = <&clk_cam2_27m>;
-        //reg = <0x1a>;
-	//	clocks = <&cru CLK_MIPI_CAMERAOUT_M1>;
 		clock-names = "xvclk";
-      //  pinctrl-names = "default";
-	//	pinctrl-0 = <&cam_clk1m0_clk1>;
-        //power-domains = <&power RK3576_PD_VI>;
-
 		rockchip,camera-module-index = <2>;
 		rockchip,camera-module-facing = "front";
 		rockchip,camera-module-name = "RADXA-CAMERA-4K";
@@ -817,7 +810,7 @@
         port {
 			cam2_imx415_out0: endpoint {
 				remote-endpoint = <&dphy4_in_ucam0>;
-				data-lanes = <1 2>;
+				data-lanes = <3 4>;
 			};
 		};
 	};
@@ -878,7 +871,7 @@
 			dphy4_in_ucam0: endpoint@1 {
 				reg = <1>;
 				remote-endpoint = <&cam2_imx415_out0>;
-				data-lanes = <1 2>;
+				data-lanes = <3 4>;
 			};
 		};
 
@@ -994,6 +987,71 @@
 
 &rkvpss_vir1 {
 	status = "okay";
+};
+/* ------- DISPLAY ------------------------------------------------- */
+
+&mipidcphy0 {
+	status = "okay";
+};
+
+&dsi {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@1 {
+			reg = <1>;
+
+			dsi_out_panel: endpoint {
+				remote-endpoint = <&panel_in_dsi>;
+			};
+		};
+	};
+};
+
+&dsi_in_vp1 {
+	status = "okay";
+};
+
+/* &dsi_in_vp2 { */
+/* 	status = "okay"; */
+/* }; */
+
+&vp1_out_dsi {
+	status = "okay";
+};
+
+&route_dsi {
+	status = "okay";
+	connect = <&vp1_out_dsi>;
+};
+
+&i2c3 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&i2c3m1_xfer>;
+
+	waveshare_panel_2_45: panel@45 {
+		compatible = "waveshare,4.0inch-panel";
+		reg = <0x45>;
+		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				panel_in_dsi: endpoint {
+					remote-endpoint = <&dsi_out_panel>;
+				};
+			};
+		};
+	};
 };
 
 // USB 2.0 PHY 0
