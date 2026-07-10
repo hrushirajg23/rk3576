@@ -24,6 +24,15 @@
 	model = "AXON LITE";
 	compatible = "vicharak,rk3576-axon-lite", "rockchip,rk3576";
 
+	vcc_5v0_dcin: regulator-vcc-5v0-dcin {
+		compatible = "regulator-fixed";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-name = "vcc_5v0_dcin";
+	};
+
 	clk_cam_25m: external-camera-clock-25m {
 		status = "okay";
 		compatible = "fixed-clock";
@@ -167,6 +176,8 @@
 		regulator-always-on;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vcc_5v0_dcin>;
+
 	};
 
 	vcc3v3_pcie0: vcc3v3-pcie0 {
@@ -176,11 +187,12 @@
 		regulator-max-microvolt = <3300000>;
 		enable-active-high;
 		gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+		/* pinctrl-names = "default"; */
+		/* pinctrl-0 = <&pcie_pwren>; */
 		startup-delay-us = <5000>;
 		regulator-boot-on;
 		regulator-always-on;
 		vin-supply = <&vcc5v0_device>;
-
     };
 
 	vcc3v3_pcie1: vcc3v3-pcie1 {
@@ -216,7 +228,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&sdio_reset_wifi>;
 		reset-gpios = <&gpio1 RK_PD5 GPIO_ACTIVE_LOW>;
-		status = "okay";
+		status = "disabled";
 	};
 		
 	hdmi_sound: hdmi-sound {
@@ -518,7 +530,7 @@
 	pinctrl-0 = <&sdmmc1m0_bus4 &sdmmc1m0_clk &sdmmc1m0_cmd>;
 	vmmc-supply = <&vcc_3v3_s3>;
 	vqmmc-supply = <&vcc_1v8_s3>;
-	status = "okay";
+	status = "disabled";
 };
 
 
@@ -660,20 +672,27 @@
 	reset-gpios = <&gpio2 RK_PC4 GPIO_ACTIVE_HIGH>;
 	rockchip,skip-scan-in-resume;
     pinctrl-names = "default";
-	pinctrl-0 = <&pcie0_rst &pcie0_clkreq &pcie0_wake>;
+	pinctrl-0 = <&pcie0_rst &pcie0m0_pins &pcie0_wake>;
 	vpcie3v3-supply = <&vcc3v3_pcie0>;
 	status = "okay";
+};
+ 
+&sata0 {
+    status = "disabled";
 };
 
 &pcie1 {
 	reset-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_HIGH>;
 	rockchip,skip-scan-in-resume;
 	pinctrl-names = "default";
-	pinctrl-0 = <&pcie1_rst &pcie1_clkreq &pcie1_wake>;
+	pinctrl-0 = <&pcie1_rst &pcie1m0_pins &pcie1_wake>;
 	vpcie3v3-supply = <&vcc3v3_pcie1>;
 	status = "okay";
 };
 
+&sata1 {
+    status = "disabled";
+};
 /* &i2c1 { */
 /* 	status = "okay"; */
 /* 	pinctrl-names = "default"; */
@@ -1179,16 +1198,22 @@
 				<2 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		pcie0_clkreq: pcie0-clkreq {
-			rockchip,pins =
-				<2 RK_PB2 4 &pcfg_pull_none>;
-		};
+		/* pcie0_clkreq: pcie0-clkreq { */
+		/* 	rockchip,pins = */
+		/* 		/1* pcie21_port0_clkreq_m0: GPIO2_PB2, func 11 *1/ */
+		/* 		<2 RK_PB2 11 &pcfg_pull_down>; */
+		/* }; */
 
 		pcie0_wake: pcie0-wake {
 			rockchip,pins =
-				<2 RK_PC3 4 &pcfg_pull_none>;
+				/* GPIO2_PC3 has no PCIe wake mux in SoC DTSI;
+				 * keep as GPIO input with pull-up */
+				<2 RK_PC3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
+		/* pcie_pwren: pcie-pwren { */
+		/* 	rockchip,pins = <4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>; */
+		/* }; */
 	};
 
 	pcie1 {
@@ -1197,14 +1222,17 @@
 				<2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		pcie1_clkreq: pcie1-clkreq {
-			rockchip,pins =
-				<2 RK_PB3 4 &pcfg_pull_none>;
-		};
+		/* pcie1_clkreq: pcie1-clkreq { */
+		/* 	rockchip,pins = */
+		/* 		/1* pcie1_clkreq_m0: GPIO2_PB3, func 11 *1/ */
+		/* 		<2 RK_PB3 11 &pcfg_pull_up>; */
+		/* }; */
 
 		pcie1_wake: pcie1-wake {
 			rockchip,pins =
-				<2 RK_PB0 4 &pcfg_pull_none>;
+				/* GPIO2_PB0 has no PCIe wake mux in SoC DTSI;
+				 * keep as GPIO input with pull-up */
+				<2 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 	wireless-bluetooth {
@@ -1378,3 +1406,12 @@
 		"", "", "", "";
 };
 
+
+/* &gpio2 { */
+/* 	pcie0-clkreq-hog { */
+/* 		gpio-hog; */
+/* 		gpios = <RK_PB2 GPIO_ACTIVE_HIGH>; */
+/* 		output-low; */
+/* 		line-name = "pcie0-clkreq-hog"; */
+/* 	}; */
+/* }; */
